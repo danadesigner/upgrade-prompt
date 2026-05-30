@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Upgrade Card — Snabbnet × Aurelia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100%; background: #14141a; font-family: 'Inter', system-ui, sans-serif; color: #f4f4f6; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; cursor: pointer; border: none; background: none; }
+  *:focus-visible { outline: 3px solid var(--focus-ring, #fff); outline-offset: 3px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script type="text/babel">
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const PHONE_MAX = 480;
+const TABLET_MAX = 900;
+const MIN_W = 320;
+const MAX_W = 1240;
+function getBP(w) { return w < PHONE_MAX ? 'phone' : w < TABLET_MAX ? 'tablet' : 'desktop'; }
+
+// ─── Shared ───────────────────────────────────────────────────────────────────
+function useCountdown(initialSeconds = 57 * 60 + 30) {
+  const [s, setS] = React.useState(initialSeconds);
+  React.useEffect(() => {
+    if (s <= 0) return;
+    const id = setInterval(() => setS(v => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(id);
+  }, [s]);
+  return { hh: String(Math.floor(s / 3600)).padStart(2,'0'), mm: String(Math.floor((s%3600)/60)).padStart(2,'0'), ss: String(s%60).padStart(2,'0'), raw: s };
+}
+
+const Icon = {
+  home: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v10a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2V11z"/></svg>,
+  chart: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>,
+  bill: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>,
+  user: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>,
+  bell: p => <svg viewBox="0 0 24 24" width={p.size||20} height={p.size||20} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>,
+  gear: p => <svg viewBox="0 0 24 24" width={p.size||20} height={p.size||20} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8L4.2 7a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.4.5.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>,
+  arrow: p => <svg viewBox="0 0 24 24" width={p.size||18} height={p.size||18} fill="none" stroke="currentColor" strokeWidth={p.stroke||2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>,
+  bolt: p => <svg viewBox="0 0 24 24" width={p.size||20} height={p.size||20} fill="currentColor" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>,
+  diamond: p => <svg viewBox="0 0 24 24" width={p.size||20} height={p.size||20} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9l4-6z"/><path d="M6 3l4 6h4l4-6M2 9h20"/></svg>,
+  clock: p => <svg viewBox="0 0 24 24" width={p.size||14} height={p.size||14} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+  warn: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="currentColor" aria-hidden="true"><path d="M12 2l11 19H1L12 2z"/><path d="M12 9v6M12 17.5v.5" stroke="#0a0a0c" strokeWidth="2.2" strokeLinecap="round"/></svg>,
+  check: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>,
+  sparkle: p => <svg viewBox="0 0 24 24" width={p.size||16} height={p.size||16} fill="currentColor" aria-hidden="true"><path d="M12 2l1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2z"/></svg>,
+  close: p => <svg viewBox="0 0 24 24" width={p.size||18} height={p.size||18} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>,
+  headset: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><path d="M21 14v3a2 2 0 0 1-2 2h-1v-7h1a2 2 0 0 1 2 2zM3 14v3a2 2 0 0 0 2 2h1v-7H5a2 2 0 0 0-2 2z"/></svg>,
+  globe: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>,
+  userPlus: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/><path d="M19 8v6M16 11h6"/></svg>,
+  device: p => <svg viewBox="0 0 24 24" width={p.size||22} height={p.size||22} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M12 6.5h.01"/><circle cx="12" cy="17" r="1.4"/></svg>,
+};
+
+function PressableButton({ children, onClick, style={}, hoverStyle={}, ariaLabel, type='button', disabled=false }) {
+  const [hover, setHover] = React.useState(false);
+  const [press, setPress] = React.useState(false);
+  return (
+    <button type={type} aria-label={ariaLabel} disabled={disabled} onClick={onClick}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setPress(false); }}
+      onMouseDown={() => setPress(true)} onMouseUp={() => setPress(false)}
+      style={{ border:0, cursor:disabled?'default':'pointer', fontFamily:'inherit', fontWeight:'inherit', color:'inherit', background:'transparent', padding:0, transform:press?'scale(0.98)':'scale(1)', transition:'transform 120ms ease, background 180ms ease, box-shadow 180ms ease, color 180ms ease, border-color 180ms ease', ...style, ...(hover&&!disabled?hoverStyle:{}) }}>
+      {children}
+    </button>
+  );
+}
+
+function Collapsible({ open, children }) {
+  const ref = React.useRef(null);
+  const [h, setH] = React.useState('auto');
+  React.useEffect(() => {
+    if (!ref.current) return;
+    if (open) { setH(ref.current.scrollHeight); const id = setTimeout(() => setH('auto'), 350); return () => clearTimeout(id); }
+    else { setH(ref.current.scrollHeight); requestAnimationFrame(() => setH(0)); }
+  }, [open]);
+  return (
+    <div style={{ height:h, opacity:open?1:0, overflow:'hidden', transition:'height 320ms cubic-bezier(.4,.0,.2,1), opacity 240ms ease' }}>
+      <div ref={ref}>{children}</div>
+    </div>
+  );
+}
+
+// ─── Snabbnet tokens ──────────────────────────────────────────────────────────
+const SN = {
+  bg:'#0A0A0C', card:'#15151A', cardHi:'#1C1C22', border:'rgba(255,255,255,0.08)',
+  text:'#FFFFFF', muted:'#8A8A92', mutedLow:'#5C5C63',
+  orange:'#FF6A1A', orangeHi:'#FF8338', orangeInk:'#1A0A00',
+  danger:'#FF4D3D', dangerBg:'rgba(255,77,61,0.12)',
+  display:'"Archivo","Inter Tight",system-ui,sans-serif',
+  body:'"Inter",system-ui,sans-serif',
+  mono:'"JetBrains Mono",ui-monospace,monospace',
+};
+
+// ─── Aurelia tokens ───────────────────────────────────────────────────────────
+const AU = {
+  bg:'#0C1024', card:'rgba(255,255,255,0.04)', cardSolid:'#0E1326',
+  cardHi:'rgba(255,255,255,0.07)', border:'rgba(255,255,255,0.10)',
+  borderHi:'rgba(90,127,255,0.45)', text:'#F4F1E8', muted:'#9AA0BA', mutedLow:'#5C617A',
+  indigo:'#5A7FFF', indigoDeep:'#1F3FCC', indigoInk:'#FFFFFF', gold:'#C7B17A', goldHi:'#D7C290',
+  display:'"Jost","Inter Tight",system-ui,sans-serif',
+  body:'"Inter",system-ui,sans-serif',
+  mono:'"JetBrains Mono",ui-monospace,monospace',
+  glass:{ background:'linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))', backdropFilter:'blur(18px) saturate(140%)', WebkitBackdropFilter:'blur(18px) saturate(140%)', border:'1px solid rgba(255,255,255,0.10)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.10),inset 0 -1px 0 rgba(0,0,0,0.35),0 12px 36px rgba(0,0,0,0.45)' },
+  glassBlue:{ background:'linear-gradient(180deg,rgba(90,127,255,0.14),rgba(90,127,255,0.03))', backdropFilter:'blur(20px) saturate(150%)', WebkitBackdropFilter:'blur(20px) saturate(150%)', border:'1px solid rgba(90,127,255,0.22)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.12),inset 0 -1px 0 rgba(0,0,0,0.35),0 14px 40px rgba(31,63,204,0.25)' },
+};
+const AureliaTheme = React.createContext(AU);
+
+// ─── Snabbnet components ──────────────────────────────────────────────────────
+function iconBtn(T) { return { width:36,height:36,borderRadius:10,background:'transparent',border:0,color:T.muted,display:'grid',placeItems:'center',cursor:'pointer' }; }
+
+function SnabbnetHeader() {
+  return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'54px 22px 8px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <div style={{width:40,height:40,borderRadius:12,background:SN.orange,display:'grid',placeItems:'center',color:SN.orangeInk}}><Icon.bolt size={22}/></div>
+        <div style={{fontFamily:SN.display,fontWeight:800,fontSize:22,letterSpacing:'-0.01em'}}>Snabbnet</div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:14}}>
+        <button aria-label="Notifications" style={iconBtn(SN)}><Icon.bell/></button>
+        <button aria-label="Settings" style={iconBtn(SN)}><Icon.gear/></button>
+        <div style={{width:34,height:34,borderRadius:999,background:'#262630',color:'#fff',display:'grid',placeItems:'center',fontWeight:700,fontSize:12}}>AL</div>
+      </div>
+    </div>
+  );
+}
+
+function SnabbnetDataAlert() {
+  return (
+    <div style={{margin:'0 18px 12px',padding:'12px 16px',borderRadius:16,background:'linear-gradient(180deg,rgba(255,77,61,0.16),rgba(255,77,61,0.06))',border:'1px solid rgba(255,77,61,0.35)'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{fontSize:11,fontWeight:600,letterSpacing:'0.16em',color:SN.muted}}>DATA LEFT</div>
+        <div style={{fontSize:13,fontWeight:600,color:SN.danger}}>Runs out in ~2 days</div>
+      </div>
+      <div style={{display:'flex',alignItems:'baseline',gap:6,marginTop:4}}>
+        <span style={{color:SN.orange,transform:'translateY(2px)'}}><Icon.warn size={22}/></span>
+        <div style={{fontFamily:SN.display,fontWeight:800,fontSize:30,letterSpacing:'-0.02em'}}>0.8 <span style={{fontSize:20}}>GB</span></div>
+      </div>
+      <div style={{fontSize:12.5,color:SN.muted,marginTop:4}}>of 20 GB this month</div>
+      <div style={{marginTop:10,height:3,borderRadius:3,background:'rgba(255,255,255,0.08)',overflow:'hidden'}}>
+        <div style={{width:'96%',height:'100%',background:`linear-gradient(90deg,${SN.orange},${SN.danger})`,boxShadow:`0 0 14px ${SN.orange}`}}/>
+      </div>
+    </div>
+  );
+}
+
+function SnabbnetStatsRow() {
+  return (
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,padding:'0 18px 14px'}}>
+      {[['CALLS','Unlimited','Within EU'],['NEXT BILL','199 kr','Drawn 28 May']].map(([label,value,sub])=>(
+        <div key={label} style={{borderRadius:14,padding:'11px 14px',background:SN.card,border:`1px solid ${SN.border}`}}>
+          <div style={{fontSize:10,fontWeight:600,letterSpacing:'0.18em',color:SN.muted}}>{label}</div>
+          <div style={{fontFamily:SN.display,fontWeight:800,fontSize:18,marginTop:3}}>{value}</div>
+          <div style={{fontSize:11.5,color:SN.muted,marginTop:1}}>{sub}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SnabbnetTabbar() {
+  const items=[{id:'home',label:'Home',icon:Icon.home},{id:'usage',label:'Usage',icon:Icon.chart},{id:'bills',label:'Bills',icon:Icon.bill},{id:'account',label:'Account',icon:Icon.user}];
+  return (
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',padding:'8px 8px 22px',borderTop:`1px solid ${SN.border}`,flexShrink:0,background:SN.bg}}>
+      {items.map(it=>{const on=it.id==='home';return(
+        <button key={it.id} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,border:0,background:'transparent',cursor:'pointer',color:on?SN.orange:SN.muted,padding:'8px 4px'}}>
+          <it.icon size={22}/><div style={{fontSize:11,fontWeight:on?700:500}}>{it.label}</div>
+        </button>
+      );})}
+    </div>
+  );
+}
+
+function SnabbnetSuccess() {
+  return (
+    <div style={{borderRadius:22,padding:'28px 22px',background:`linear-gradient(180deg,rgba(255,106,26,0.18),rgba(255,106,26,0.04))`,border:`1.5px solid ${SN.orange}`,textAlign:'center',animation:'sn-pop 360ms cubic-bezier(.2,1.4,.4,1)'}}>
+      <div style={{width:52,height:52,borderRadius:999,background:SN.orange,color:SN.orangeInk,display:'grid',placeItems:'center',margin:'0 auto 14px'}}><Icon.check size={28}/></div>
+      <div style={{fontFamily:SN.display,fontWeight:800,fontSize:22,letterSpacing:'-0.01em'}}>Data doubled.</div>
+      <div style={{fontSize:14,color:SN.muted,marginTop:6}}>40 GB is live. Stream away.</div>
+    </div>
+  );
+}
+
+function SnabbnetCard({ onUpgrade, onDismiss }) {
+  const {hh,mm,ss}=useCountdown();
+  return (
+    <div className="sn-card-mount" style={{position:'relative',margin:'0 18px 16px',borderRadius:22,padding:'20px 20px 22px',background:SN.card,border:`1px solid ${SN.border}`}}>
+      <div className="sn-beam" aria-hidden="true"/>
+      <div style={{position:'relative'}}>
+        <div style={{display:'flex',justifyContent:'flex-start',marginBottom:14}}>
+          <div style={{display:'inline-flex',alignItems:'center',gap:6,background:SN.orange,color:SN.orangeInk,padding:'7px 12px',borderRadius:999,fontSize:11,fontWeight:800,letterSpacing:'0.14em',boxShadow:'0 0 22px rgba(255,106,26,0.65),0 4px 14px rgba(255,106,26,0.45)'}}>
+            <Icon.clock size={12}/> LIMITED OFFER
+          </div>
+        </div>
+        <h2 style={{fontFamily:SN.display,fontWeight:800,fontSize:30,lineHeight:1.06,margin:0,letterSpacing:'-0.02em'}}>Double your data — just <span style={{color:SN.orange}}>+39 kr/mo</span></h2>
+        <p style={{fontFamily:SN.body,fontSize:14.5,lineHeight:1.5,color:SN.muted,margin:'12px 0 18px'}}>You hit 98% of your data this month. Bump to <strong style={{color:SN.text}}>40 GB</strong> for a coffee's worth.</p>
+        <div style={{display:'flex',alignItems:'center',gap:14}}>
+          <PressableButton onClick={onUpgrade} ariaLabel="Upgrade now"
+            style={{flex:1,padding:'15px 18px',borderRadius:14,background:SN.orange,color:SN.orangeInk,border:'4px solid rgba(133,56,22,0.7)',fontFamily:SN.display,fontWeight:800,fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',gap:10}}
+            hoverStyle={{background:SN.orangeHi}}>
+            Upgrade now <Icon.arrow size={18} stroke={2.8}/>
+          </PressableButton>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:10,fontWeight:600,color:SN.muted,letterSpacing:'0.14em'}}>EXPIRES IN</div>
+            <div style={{fontFamily:SN.mono,fontSize:15,fontWeight:500,color:SN.orange,marginTop:2,fontVariantNumeric:'tabular-nums'}} aria-live="polite">
+              <span>{hh}</span><span className="sn-tick">:</span><span>{mm}</span><span className="sn-tick">:</span><span>{ss}</span>
+            </div>
+          </div>
+        </div>
+        <div style={{textAlign:'center',marginTop:14}}>
+          <PressableButton onClick={onDismiss} ariaLabel="Dismiss offer"
+            style={{padding:'6px 10px',color:SN.muted,fontSize:13,fontWeight:500,textDecoration:'underline',textUnderlineOffset:3,textDecorationColor:'rgba(255,255,255,0.18)'}}
+            hoverStyle={{color:SN.text,textDecorationColor:'rgba(255,255,255,0.45)'}}>
+            No thanks, I'll manage
+          </PressableButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SnabbnetHome() {
+  const [state, setState] = React.useState('offer');
+  return (
+    <div style={{background:SN.bg,color:SN.text,height:'100%',display:'flex',flexDirection:'column',fontFamily:SN.body,overflow:'hidden'}}>
+      <style>{`
+        @property --beam-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
+        @keyframes sn-pop{0%{transform:scale(0.96);opacity:0}100%{transform:scale(1);opacity:1}}
+        @keyframes sn-card-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes sn-beam-rotate{to{--beam-angle:360deg}}
+        @keyframes sn-tick-blink{0%,92%,100%{opacity:1}96%{opacity:0.4}}
+        .sn-card-mount{animation:sn-card-in 420ms cubic-bezier(.2,.9,.3,1) both}
+        .sn-tick{animation:sn-tick-blink 1s steps(1) infinite}
+        .sn-beam{position:absolute;inset:-1px;border-radius:22px;padding:1.5px;background:conic-gradient(from var(--beam-angle),transparent 0deg,transparent 280deg,rgba(255,131,56,0) 295deg,rgba(255,106,26,1) 325deg,rgba(255,209,170,1) 340deg,rgba(255,106,26,1) 350deg,rgba(255,131,56,0) 358deg,transparent 360deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:sn-beam-rotate 11s linear infinite;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,106,26,0.55))}
+        @media(prefers-reduced-motion:reduce){.sn-card-mount,.sn-tick,.sn-beam{animation:none!important}}
+      `}</style>
+      <div style={{flex:1,overflowY:'auto',overflowX:'hidden'}}>
+        <SnabbnetHeader/>
+        <div style={{padding:'4px 22px 14px'}}>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:'0.18em',color:SN.muted}}>OVERVIEW</div>
+          <h1 style={{fontFamily:SN.display,fontWeight:800,fontSize:30,lineHeight:1.05,margin:'4px 0 0',letterSpacing:'-0.02em'}}>Hi Alex!</h1>
+        </div>
+        <SnabbnetDataAlert/>
+        <div style={{margin:'0 18px 18px'}}>
+          <Collapsible open={state!=='dismissed'}>
+            {state==='success'?<SnabbnetSuccess/>:<div style={{margin:'0 -18px'}}><SnabbnetCard onUpgrade={()=>setState('success')} onDismiss={()=>setState('dismissed')}/></div>}
+          </Collapsible>
+          {state==='dismissed'&&(
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',borderRadius:12,background:SN.card,border:`1px dashed ${SN.border}`,fontSize:12.5,color:SN.muted}}>
+              Offer dismissed.
+              <PressableButton onClick={()=>setState('offer')} style={{color:SN.orange,fontSize:13,fontWeight:600}} hoverStyle={{color:SN.orangeHi}}>Show again</PressableButton>
+            </div>
+          )}
+        </div>
+        <SnabbnetStatsRow/>
+      </div>
+      <SnabbnetTabbar/>
+    </div>
+  );
+}
+
+function SnabbnetDesktop() {
+  const [state, setState] = React.useState('offer');
+  return (
+    <div style={{display:'flex',height:'100%',background:SN.bg,color:SN.text,fontFamily:SN.body,overflow:'hidden'}}>
+      <style>{`
+        @keyframes sn-pop-d{0%{transform:scale(0.96);opacity:0}100%{transform:scale(1);opacity:1}}
+        @keyframes sn-card-in-d{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes sn-tick-d{0%,92%,100%{opacity:1}96%{opacity:0.4}}
+        .sn-card-mount-d{animation:sn-card-in-d 420ms cubic-bezier(.2,.9,.3,1) both}
+        .sn-tick-d{animation:sn-tick-d 1s steps(1) infinite}
+        @media(prefers-reduced-motion:reduce){.sn-card-mount-d,.sn-tick-d{animation:none!important}}
+        .sn-desk-wrap>div{margin:0!important}
+      `}</style>
+      <aside style={{width:232,flexShrink:0,borderRight:`1px solid ${SN.border}`,padding:'22px 16px',display:'flex',flexDirection:'column',gap:4}}>
+        <div style={{display:'flex',alignItems:'center',gap:11,padding:'0 8px 22px'}}>
+          <div style={{width:34,height:34,borderRadius:10,background:SN.orange,color:SN.orangeInk,display:'grid',placeItems:'center'}}><Icon.bolt size={19}/></div>
+          <div style={{fontFamily:SN.display,fontWeight:800,fontSize:19,letterSpacing:'-0.01em'}}>Snabbnet</div>
+        </div>
+        {[['home','Overview',true],['chart','Usage',false],['bill','Bills',false],['device','Devices',false],['headset','Support',false]].map(([k,label,active])=>(
+          <div key={k} style={{display:'flex',alignItems:'center',gap:12,padding:'11px 14px',borderRadius:12,color:active?SN.text:SN.muted,background:active?SN.cardHi:'transparent',fontSize:14,fontWeight:active?700:500,cursor:'pointer'}}>
+            {React.createElement(Icon[k]||Icon.home,{size:19})} {label}
+          </div>
+        ))}
+        <div style={{marginTop:'auto',display:'flex',alignItems:'center',gap:11,padding:'12px 8px',borderTop:`1px solid ${SN.border}`}}>
+          <div style={{width:34,height:34,borderRadius:999,background:'#262630',color:'#fff',display:'grid',placeItems:'center',fontWeight:700,fontSize:13}}>AL</div>
+          <div><div style={{fontSize:13.5,fontWeight:600}}>Alex Lund</div><div style={{fontSize:12,color:SN.muted}}>Flex 20 plan</div></div>
+        </div>
+      </aside>
+      <main style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
+        <header style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 32px',borderBottom:`1px solid ${SN.border}`}}>
+          <div style={{fontFamily:SN.display,fontWeight:800,fontSize:22,letterSpacing:'-0.01em'}}>Overview</div>
+          <div style={{display:'flex',alignItems:'center',gap:18,color:SN.muted}}><Icon.bell size={20}/><Icon.gear size={20}/></div>
+        </header>
+        <div style={{padding:'28px 32px',flex:1,overflow:'hidden'}}>
+          <div style={{fontFamily:SN.display,fontWeight:800,fontSize:30,letterSpacing:'-0.02em'}}>Hi Alex!</div>
+          <div style={{fontSize:14.5,color:SN.muted,marginTop:4}}>Here's where your plan stands this month.</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginTop:24}}>
+            {[['DATA LEFT','0.8 GB','of 20 GB · runs out in ~2 days',true],['CALLS','Unlimited','Within EU',false],['NEXT BILL','199 kr','Drawn 28 May',false]].map(([label,value,sub,accent])=>(
+              <div key={label} style={{background:SN.card,border:`1px solid ${SN.border}`,borderRadius:16,padding:'18px 20px'}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.16em',color:SN.muted}}>{label}</div>
+                <div style={{fontFamily:SN.display,fontWeight:800,fontSize:26,marginTop:8,color:accent?SN.orange:SN.text,letterSpacing:'-0.02em'}}>{value}</div>
+                <div style={{fontSize:13,color:SN.muted,marginTop:4}}>{sub}</div>
+              </div>
+            ))}
+          </div>
+          <div className="sn-desk-wrap" style={{marginTop:16}}>
+            {state==='offer'&&<SnabbnetCard onUpgrade={()=>setState('success')} onDismiss={()=>setState('dismissed')}/>}
+            {state==='success'&&<SnabbnetSuccess/>}
+            {state==='dismissed'&&(
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:SN.card,border:`1px solid ${SN.border}`,borderRadius:18,padding:'18px 20px',fontSize:13.5,color:SN.muted}}>
+                <span>Offer hidden. <strong style={{color:SN.text}}>You can boost any time.</strong></span>
+                <PressableButton onClick={()=>setState('offer')} style={{color:SN.orange,fontSize:13.5,fontWeight:700}} hoverStyle={{color:SN.text}}>Show again</PressableButton>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ─── Aurelia components ───────────────────────────────────────────────────────
+function AureliaHeader() {
+  const T=React.useContext(AureliaTheme);
+  return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'54px 22px 10px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <div style={{width:40,height:40,borderRadius:12,background:'rgba(90,127,255,0.10)',border:`1px solid ${T.borderHi}`,display:'grid',placeItems:'center',color:T.indigo,boxShadow:'0 0 20px rgba(31,63,204,0.35)'}}><Icon.diamond size={20}/></div>
+        <div style={{fontFamily:T.display,fontWeight:400,fontSize:24,letterSpacing:'0.005em'}}>Aurelia</div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <button aria-label="Notifications" style={{...iconBtn(T),width:40,height:40,borderRadius:999,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,color:T.text,position:'relative'}}>
+          <Icon.bell size={18}/>
+          <span aria-hidden="true" style={{position:'absolute',top:9,right:11,width:7,height:7,borderRadius:999,background:T.indigo,boxShadow:`0 0 8px ${T.indigo}`}}/>
+        </button>
+        <div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,padding:'5px 12px 5px 6px',borderRadius:999}}>
+          <div style={{width:28,height:28,borderRadius:999,background:'linear-gradient(135deg,#1F3FCC,#5A7FFF)',display:'grid',placeItems:'center',color:'#fff',fontSize:11,fontWeight:700}}>ML</div>
+          <span style={{fontSize:13.5,fontWeight:500}}>Maria&nbsp;L.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AureliaMembershipCard() {
+  const T=React.useContext(AureliaTheme);
+  return (
+    <div style={{margin:'0 18px 14px',padding:'18px 20px',borderRadius:20,...T.glass,position:'relative',overflow:'hidden'}}>
+      <div style={{position:'relative',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'0.22em',color:T.muted}}>MEMBERSHIP</div>
+        <div style={{fontSize:12,color:T.muted}}>Since Jan 2024</div>
+      </div>
+      <div style={{position:'relative',fontFamily:T.display,fontWeight:400,fontSize:30,lineHeight:1.1,marginTop:8,letterSpacing:'-0.005em'}}>Premium</div>
+      <div style={{position:'relative',marginTop:14,display:'inline-flex',alignItems:'center',gap:6,border:`1px solid ${T.borderHi}`,color:T.indigo,padding:'5px 11px',borderRadius:999,fontSize:11,fontWeight:500,boxShadow:'0 0 18px rgba(31,63,204,0.35)'}}>
+        <span className="au-breath" style={{width:6,height:6,borderRadius:999,background:T.indigo}}/>
+        Priority service active
+      </div>
+    </div>
+  );
+}
+
+function AureliaStatsRow() {
+  const T=React.useContext(AureliaTheme);
+  return (
+    <div style={{padding:'0 18px 18px'}}>
+      <div style={{borderRadius:16,padding:'14px 16px',...T.glass}}>
+        <div style={{fontSize:10,fontWeight:600,letterSpacing:'0.2em',color:T.muted}}>DATA USED</div>
+        <div style={{display:'flex',alignItems:'baseline',gap:6,marginTop:4}}>
+          <span style={{fontFamily:T.display,fontWeight:400,fontSize:26,letterSpacing:'-0.01em'}}>38</span>
+          <span style={{fontSize:13,color:T.muted,fontWeight:500}}>GB</span>
+          <span style={{fontSize:12,color:T.muted,marginLeft:'auto'}}>of 50 GB this month</span>
+        </div>
+        <div style={{marginTop:12,height:3,borderRadius:3,background:'rgba(255,255,255,0.08)',overflow:'hidden'}}>
+          <div style={{width:'76%',height:'100%',background:T.indigo,boxShadow:'0 0 10px rgba(90,127,255,0.7)'}}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AureliaTabbar() {
+  const T=React.useContext(AureliaTheme);
+  const items=[{id:'home',label:'Overview',icon:Icon.home},{id:'usage',label:'Usage',icon:Icon.chart},{id:'bills',label:'Billing',icon:Icon.bill},{id:'concierge',label:'Concierge',icon:Icon.headset},{id:'account',label:'Account',icon:Icon.user}];
+  return (
+    <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',padding:'10px 6px 22px',borderTop:`1px solid ${T.border}`,flexShrink:0,background:T.bg}}>
+      {items.map(it=>{const on=it.id==='home';return(
+        <button key={it.id} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5,border:0,background:'transparent',cursor:'pointer',color:on?T.indigo:T.muted,padding:'6px 2px',filter:on?'drop-shadow(0 0 8px rgba(90,127,255,0.55))':'none'}}>
+          <it.icon size={21}/><div style={{fontSize:10.5,fontWeight:on?600:500}}>{it.label}</div>
+        </button>
+      );})}
+    </div>
+  );
+}
+
+function AureliaSuccess() {
+  const T=React.useContext(AureliaTheme);
+  return (
+    <div style={{borderRadius:24,padding:'32px 22px',...T.glassBlue,textAlign:'center',animation:'au-fade 480ms ease'}}>
+      <div style={{width:56,height:56,borderRadius:999,background:'rgba(90,127,255,0.14)',border:`1px solid ${T.borderHi}`,color:T.indigo,display:'grid',placeItems:'center',margin:'0 auto 16px'}}><Icon.check size={26}/></div>
+      <div style={{fontFamily:T.display,fontWeight:400,fontSize:26,letterSpacing:'-0.005em'}}>Family is set up.</div>
+      <div style={{fontFamily:T.display,fontSize:18,color:T.muted,marginTop:4}}>Invitations sent.</div>
+    </div>
+  );
+}
+
+function AureliaCard({ onUpgrade, onDismiss, compact }) {
+  const T=React.useContext(AureliaTheme);
+  const s=compact
+    ?{pad:'16px 14px 14px',radius:18,eyebrow:9.5,eyebrowGap:6,eyebrowIcon:12,h2:19,h2mt:12,body:12,bodyM:'8px 0 14px',cta:'11px 14px',ctaFont:13,ctaIcon:14,dismiss:12,dismissMt:10,x:28,xIcon:15,xPos:10}
+    :{pad:'22px 22px 20px',radius:24,eyebrow:12,eyebrowGap:9,eyebrowIcon:15,h2:33,h2mt:18,body:15,bodyM:'14px 0 22px',cta:'16px 18px',ctaFont:16,ctaIcon:17,dismiss:14.5,dismissMt:16,x:34,xIcon:18,xPos:16};
+  return (
+    <div className="au-card-mount" style={{position:'relative',borderRadius:s.radius,padding:s.pad,...T.glassBlue,overflow:'hidden'}}>
+      <div aria-hidden="true" style={{position:'absolute',top:-80,right:-60,width:280,height:280,borderRadius:999,background:'radial-gradient(closest-side,rgba(40,80,220,0.45),rgba(31,63,204,0.12) 55%,transparent 78%)',pointerEvents:'none',zIndex:0,filter:'blur(6px)'}}/>
+      <PressableButton onClick={onDismiss} ariaLabel="Dismiss" style={{position:'absolute',top:s.xPos,right:s.xPos,zIndex:2,width:s.x,height:s.x,borderRadius:999,display:'grid',placeItems:'center',color:T.muted,background:'transparent',border:'1px solid transparent'}} hoverStyle={{color:T.text,background:'rgba(255,255,255,0.06)',borderColor:T.border}}>
+        <Icon.close size={s.xIcon}/>
+      </PressableButton>
+      <div style={{position:'relative',zIndex:1}}>
+        <div style={{display:'inline-flex',alignItems:'center',gap:s.eyebrowGap,color:T.gold,fontFamily:T.body,fontWeight:600,fontSize:s.eyebrow,letterSpacing:'0.18em'}}>
+          <Icon.sparkle size={s.eyebrowIcon}/> CONCIERGE SUGGESTION
+        </div>
+        <h2 style={{fontFamily:T.display,fontWeight:400,fontSize:s.h2,lineHeight:1.1,margin:`${s.h2mt}px 0 0`,letterSpacing:'-0.01em'}}>Premium can be <span style={{color:T.indigo}}>shared.</span></h2>
+        <p style={{fontFamily:T.body,fontSize:s.body,lineHeight:1.55,color:T.muted,margin:s.bodyM}}>You can include up to four people on your plan. One invoice, individual settings, consistent experience.</p>
+        <PressableButton onClick={onUpgrade} ariaLabel="Upgrade now" style={{width:'100%',padding:s.cta,borderRadius:999,background:'transparent',color:T.text,border:`1px solid ${T.indigo}`,fontFamily:T.body,fontWeight:500,fontSize:s.ctaFont,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:10}} hoverStyle={{background:'rgba(90,127,255,0.12)',boxShadow:'0 0 26px rgba(40,80,220,0.4)'}}>
+          Upgrade now <Icon.arrow size={s.ctaIcon} stroke={2}/>
+        </PressableButton>
+        <div style={{textAlign:'center',marginTop:s.dismissMt}}>
+          <PressableButton onClick={onDismiss} ariaLabel="Maybe later" style={{padding:'4px 10px',color:T.muted,fontFamily:T.body,fontSize:s.dismiss,fontWeight:400,textDecoration:'underline',textUnderlineOffset:3,textDecorationColor:'rgba(154,160,186,0.45)'}} hoverStyle={{color:T.text}}>Maybe later</PressableButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AureliaHome() {
+  const [state,setState]=React.useState('offer');
+  return (
+    <AureliaTheme.Provider value={AU}>
+      <div style={{position:'relative',background:AU.bg,color:AU.text,height:'100%',display:'flex',flexDirection:'column',fontFamily:AU.body,overflow:'hidden'}}>
+        <style>{`
+          @keyframes au-fade{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:translateY(0)}}
+          @keyframes au-card-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+          @keyframes au-orb-a{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-12px)}}
+          @keyframes au-orb-b{0%,100%{transform:translate(0,0)}50%{transform:translate(-28px,26px)}}
+          @keyframes au-breath{0%,100%{box-shadow:0 0 8px rgba(90,127,255,0.5);opacity:1}50%{box-shadow:0 0 14px rgba(90,127,255,0.95);opacity:0.78}}
+          .au-card-mount{animation:au-card-in 520ms cubic-bezier(.2,.7,.2,1) both}
+          .au-orb-a{animation:au-orb-a 11s ease-in-out infinite}
+          .au-orb-b{animation:au-orb-b 13s ease-in-out infinite}
+          .au-breath{animation:au-breath 2.6s ease-in-out infinite}
+          @media(prefers-reduced-motion:reduce){.au-card-mount,.au-orb-a,.au-orb-b,.au-breath{animation:none!important}}
+        `}</style>
+        <div aria-hidden="true" className="au-orb-a" style={{position:'absolute',top:-220,left:'50%',transform:'translateX(-50%)',width:460,height:360,borderRadius:'50%',background:'radial-gradient(closest-side,rgba(31,63,204,0.62),rgba(31,63,204,0.14) 45%,transparent 78%)',pointerEvents:'none',zIndex:0,filter:'blur(14px)'}}/>
+        <div aria-hidden="true" className="au-orb-b" style={{position:'absolute',bottom:60,right:-140,width:340,height:340,borderRadius:999,background:'radial-gradient(closest-side,rgba(40,80,220,0.18),transparent 70%)',pointerEvents:'none',zIndex:0,filter:'blur(20px)'}}/>
+        <div style={{position:'relative',zIndex:1,display:'flex',flexDirection:'column',height:'100%'}}>
+          <div style={{flex:1,overflowY:'auto',overflowX:'hidden'}}>
+            <AureliaHeader/>
+            <div style={{padding:'6px 22px 18px'}}>
+              <div style={{fontFamily:AU.body,fontSize:10.5,fontWeight:600,letterSpacing:'0.22em',color:AU.muted}}>ACCOUNT&nbsp;OVERVIEW</div>
+              <h1 style={{fontFamily:AU.display,fontWeight:400,fontSize:32,lineHeight:1.08,margin:'6px 0 0',letterSpacing:'-0.005em'}}>Good afternoon, Maria.</h1>
+            </div>
+            <AureliaMembershipCard/>
+            <AureliaStatsRow/>
+            <div style={{margin:'0 18px 18px'}}>
+              <Collapsible open={state!=='dismissed'}>
+                {state==='success'?<AureliaSuccess/>:<AureliaCard onUpgrade={()=>setState('success')} onDismiss={()=>setState('dismissed')}/>}
+              </Collapsible>
+              {state==='dismissed'&&(
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',borderRadius:14,...AU.glass,fontSize:13,color:AU.muted}}>
+                  <span><span style={{fontFamily:AU.display,color:AU.text}}>Understood.</span>&nbsp;We won't ask again.</span>
+                  <PressableButton onClick={()=>setState('offer')} style={{color:AU.indigo,fontSize:13,fontWeight:600}} hoverStyle={{color:AU.text}}>Reconsider</PressableButton>
+                </div>
+              )}
+            </div>
+          </div>
+          <AureliaTabbar/>
+        </div>
+      </div>
+    </AureliaTheme.Provider>
+  );
+}
+
+function AureliaDesktop() {
+  const [state,setState]=React.useState('offer');
+  return (
+    <AureliaTheme.Provider value={AU}>
+      <div style={{display:'flex',height:'100%',background:AU.bg,color:AU.text,fontFamily:AU.body,overflow:'hidden',position:'relative'}}>
+        <div aria-hidden="true" style={{position:'absolute',top:-160,left:'46%',width:520,height:380,borderRadius:'50%',background:'radial-gradient(closest-side,rgba(31,63,204,0.4),transparent 72%)',filter:'blur(20px)',pointerEvents:'none'}}/>
+        <aside style={{width:264,flexShrink:0,borderRight:`1px solid ${AU.border}`,padding:'24px 16px',display:'flex',flexDirection:'column',gap:4,position:'relative',zIndex:1}}>
+          <div style={{display:'flex',alignItems:'center',gap:11,padding:'0 8px 24px'}}>
+            <div style={{width:36,height:36,borderRadius:11,background:'rgba(90,127,255,0.10)',border:`1px solid ${AU.borderHi}`,display:'grid',placeItems:'center',color:AU.indigo}}><Icon.diamond size={19}/></div>
+            <div style={{fontFamily:AU.display,fontWeight:400,fontSize:22,letterSpacing:'0.005em'}}>Aurelia</div>
+          </div>
+          {[['home','Overview',true],['diamond','Membership',false],['chart','Usage',false],['bill','Billing',false],['headset','Concierge',false]].map(([k,label,active])=>(
+            <div key={k} style={{display:'flex',alignItems:'center',gap:12,padding:'11px 14px',borderRadius:12,color:active?AU.text:AU.muted,background:active?'rgba(255,255,255,0.06)':'transparent',fontSize:14,fontWeight:active?600:400,cursor:'pointer'}}>
+              {React.createElement(Icon[k]||Icon.home,{size:19})} {label}
+            </div>
+          ))}
+          <div style={{marginTop:'auto',paddingTop:16}}>
+            {state==='offer'&&<AureliaCard compact onUpgrade={()=>setState('success')} onDismiss={()=>setState('dismissed')}/>}
+            {state==='success'&&<AureliaSuccess/>}
+            {state==='dismissed'&&(
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,...AU.glass,borderRadius:14,padding:'12px 14px',fontSize:12,color:AU.muted}}>
+                <span><span style={{fontFamily:AU.display,color:AU.text}}>Understood.</span>&nbsp;We won't ask again.</span>
+                <PressableButton onClick={()=>setState('offer')} style={{color:AU.indigo,fontSize:12,fontWeight:600}} hoverStyle={{color:AU.text}}>Reconsider</PressableButton>
+              </div>
+            )}
+          </div>
+          <div style={{marginTop:16,display:'flex',alignItems:'center',gap:11,padding:'12px 8px',borderTop:`1px solid ${AU.border}`}}>
+            <div style={{width:34,height:34,borderRadius:999,background:'linear-gradient(135deg,#5A7FFF,#1F3FCC)',color:'#fff',display:'grid',placeItems:'center',fontWeight:500,fontSize:13,fontFamily:AU.display}}>M</div>
+            <div><div style={{fontSize:13.5,fontWeight:500}}>Maria Lind</div><div style={{fontSize:12,color:AU.muted}}>Premium</div></div>
+          </div>
+        </aside>
+        <main style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,position:'relative',zIndex:1}}>
+          <header style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'22px 36px',borderBottom:`1px solid ${AU.border}`}}>
+            <div style={{fontFamily:AU.body,fontWeight:600,fontSize:12,letterSpacing:'0.18em',color:AU.muted}}>OVERVIEW</div>
+            <div style={{display:'flex',alignItems:'center',gap:18,color:AU.muted}}><Icon.bell size={20}/><Icon.gear size={20}/></div>
+          </header>
+          <div style={{padding:'34px 36px',flex:1,overflow:'hidden'}}>
+            <h1 style={{fontFamily:AU.display,fontWeight:400,fontSize:34,letterSpacing:'-0.005em',margin:0}}>Good afternoon, Maria.</h1>
+            <div style={{fontSize:15,color:AU.muted,marginTop:6}}>Your Premium membership, at a glance.</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginTop:28}}>
+              {[['DATA USED','38 GB','of 50 GB this month'],['MEMBERS','1 of 4','Family seats available'],['NEXT RENEWAL','1200 kr','On 12 June']].map(([label,value,sub])=>(
+                <div key={label} style={{...AU.glass,borderRadius:16,padding:'18px 20px'}}>
+                  <div style={{fontSize:11,fontWeight:600,letterSpacing:'0.16em',color:AU.muted}}>{label}</div>
+                  <div style={{fontFamily:AU.display,fontWeight:400,fontSize:26,marginTop:8,color:AU.text,letterSpacing:'-0.01em'}}>{value}</div>
+                  <div style={{fontSize:13,color:AU.muted,marginTop:4}}>{sub}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    </AureliaTheme.Provider>
+  );
+}
+
+// ─── Frames ───────────────────────────────────────────────────────────────────
+function IOSFrame({ children, width, height }) {
+  return (
+    <div style={{width,height,borderRadius:54,background:'#141418',border:'1.5px solid rgba(255,255,255,0.11)',boxShadow:'0 0 0 1px rgba(0,0,0,0.6),0 48px 120px rgba(0,0,0,0.85),inset 0 1px 0 rgba(255,255,255,0.14)',overflow:'hidden',position:'relative',flexShrink:0}}>
+      {/* Side buttons */}
+      {[{l:-2,t:130,w:3,h:36},{l:-2,t:178,w:3,h:68},{l:-2,t:258,w:3,h:68},{r:-2,t:182,w:3,h:100}].map((b,i)=>(
+        <div key={i} aria-hidden="true" style={{position:'absolute',left:b.l,right:b.r,top:b.t,width:b.w,height:b.h,borderRadius:b.l!=null?'2px 0 0 2px':'0 2px 2px 0',background:'rgba(255,255,255,0.08)'}}/>
+      ))}
+      <div style={{position:'absolute',inset:0,borderRadius:52,overflow:'hidden'}}>{children}</div>
+      {/* Dynamic Island */}
+      <div aria-hidden="true" style={{position:'absolute',top:12,left:'50%',transform:'translateX(-50%)',width:126,height:37,borderRadius:20,background:'#000',zIndex:100}}/>
+      {/* Home bar */}
+      <div aria-hidden="true" style={{position:'absolute',bottom:10,left:'50%',transform:'translateX(-50%)',width:130,height:5,borderRadius:3,background:'rgba(255,255,255,0.28)',zIndex:100}}/>
+    </div>
+  );
+}
+
+function TabletFrame({ children, width, height }) {
+  return (
+    <div style={{width,height,borderRadius:28,background:'linear-gradient(160deg,#1E1E26,#17171E)',border:'1.5px solid rgba(255,255,255,0.10)',boxShadow:'0 0 0 1px rgba(0,0,0,0.55),0 48px 100px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.12)',overflow:'hidden',position:'relative',flexShrink:0}}>
+      {/* Camera */}
+      <div aria-hidden="true" style={{position:'absolute',top:14,left:'50%',transform:'translateX(-50%)',width:8,height:8,borderRadius:999,background:'#2C2C36',zIndex:10}}/>
+      {/* Side button */}
+      <div aria-hidden="true" style={{position:'absolute',right:-2,top:160,width:3,height:60,borderRadius:'0 2px 2px 0',background:'rgba(255,255,255,0.08)'}}/>
+      <div style={{position:'absolute',inset:0,borderRadius:26,overflow:'hidden'}}>{children}</div>
+      {/* Home bar */}
+      <div aria-hidden="true" style={{position:'absolute',bottom:8,left:'50%',transform:'translateX(-50%)',width:120,height:4,borderRadius:3,background:'rgba(255,255,255,0.2)',zIndex:100}}/>
+    </div>
+  );
+}
+
+function BrowserFrame({ children, width, height, url }) {
+  return (
+    <div style={{width,height,borderRadius:14,border:'1px solid rgba(255,255,255,0.10)',boxShadow:'0 0 0 1px rgba(0,0,0,0.5),0 48px 120px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.08)',overflow:'hidden',display:'flex',flexDirection:'column',flexShrink:0}}>
+      <div style={{height:44,background:'#1C1C22',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',padding:'0 16px',flexShrink:0}}>
+        <div style={{display:'flex',gap:8,marginRight:16}}>
+          {['#FF5F57','#FFBD2E','#28CA41'].map(c=><div key={c} style={{width:12,height:12,borderRadius:999,background:c}}/>)}
+        </div>
+        <div style={{flex:1,display:'flex',justifyContent:'center'}}>
+          <div style={{height:27,minWidth:200,maxWidth:360,width:'36%',borderRadius:7,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'rgba(255,255,255,0.38)',fontFamily:'"Inter",system-ui,sans-serif',gap:5}}>
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><rect x="1" y="3" width="10" height="8" rx="1.5"/><path d="M4 3V2.5a2 2 0 1 1 4 0V3"/></svg>
+            {url}
+          </div>
+        </div>
+      </div>
+      <div style={{flex:1,overflow:'hidden',position:'relative'}}>{children}</div>
+    </div>
+  );
+}
+
+// ─── Brand Switch ─────────────────────────────────────────────────────────────
+function BrandSwitch({ brand, onChange }) {
+  const opts = [
+    { id:'snabbnet', label:'Snabbnet', font:SN.display, weight:800, color:SN.orange, ink:SN.orangeInk },
+    { id:'aurelia',  label:'Aurelia',  font:AU.display, weight:500, color:AU.indigo, ink:'#fff' },
+  ];
+  return (
+    <div role="group" aria-label="Brand selector" style={{display:'flex',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:999,padding:4,gap:2}}>
+      {opts.map(b => {
+        const active = brand === b.id;
+        return (
+          <button key={b.id} onClick={() => onChange(b.id)} aria-pressed={active}
+            style={{'--focus-ring':b.color,padding:'10px 32px',borderRadius:999,background:active?b.color:'transparent',color:active?b.ink:'rgba(255,255,255,0.38)',fontFamily:b.font,fontWeight:active?b.weight:500,fontSize:15,letterSpacing:b.id==='snabbnet'?'-0.01em':'0.02em',transition:'all 0.22s cubic-bezier(.4,0,.2,1)',boxShadow:active?`0 2px 18px ${b.color}55`:'none',border:'none',cursor:'pointer'}}>
+            {b.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Breakpoint bar ───────────────────────────────────────────────────────────
+function BreakpointBar({ width, bp }) {
+  const total = MAX_W - MIN_W;
+  const pct = ((width - MIN_W) / total) * 100;
+  const zones = [
+    { id:'phone',   from:0,                              to:(PHONE_MAX-MIN_W)/total*100,  color:SN.orange,  label:'Phone'   },
+    { id:'tablet',  from:(PHONE_MAX-MIN_W)/total*100,   to:(TABLET_MAX-MIN_W)/total*100, color:'#A78BFA',  label:'Tablet'  },
+    { id:'desktop', from:(TABLET_MAX-MIN_W)/total*100,  to:100,                          color:AU.indigo,  label:'Desktop' },
+  ];
+  const activeColor = zones.find(z=>z.id===bp).color;
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:6,width:'100%',maxWidth:560}}>
+      {/* Zone labels */}
+      <div style={{display:'flex',position:'relative',height:16}}>
+        {zones.map(z=>(
+          <div key={z.id} style={{position:'absolute',left:`${z.from}%`,width:`${z.to-z.from}%`,display:'flex',justifyContent:'center'}}>
+            <span style={{fontSize:10,fontWeight:600,letterSpacing:'0.08em',textTransform:'uppercase',color:bp===z.id?z.color:'rgba(255,255,255,0.2)',transition:'color 0.2s',whiteSpace:'nowrap'}}>{z.label}</span>
+          </div>
+        ))}
+      </div>
+      {/* Track */}
+      <div style={{position:'relative',height:3,borderRadius:2,background:'rgba(255,255,255,0.08)'}}>
+        {/* Zone segments */}
+        {zones.map(z=>(
+          <div key={z.id} style={{position:'absolute',left:`${z.from}%`,width:`${z.to-z.from}%`,height:'100%',background:bp===z.id?`${z.color}40`:'transparent',borderRadius:2,transition:'background 0.2s'}}/>
+        ))}
+        {/* Separator ticks */}
+        {[(PHONE_MAX-MIN_W)/total*100,(TABLET_MAX-MIN_W)/total*100].map((p,i)=>(
+          <div key={i} style={{position:'absolute',left:`${p}%`,top:-2,width:1,height:7,background:'rgba(255,255,255,0.15)',transform:'translateX(-50%)'}}/>
+        ))}
+        {/* Thumb */}
+        <div style={{position:'absolute',left:`${pct}%`,top:'50%',transform:'translate(-50%,-50%)',width:10,height:10,borderRadius:999,background:activeColor,boxShadow:`0 0 8px ${activeColor}`,transition:'background 0.2s,box-shadow 0.2s'}}/>
+      </div>
+      {/* Width label under thumb */}
+      <div style={{position:'relative',height:14}}>
+        <span style={{position:'absolute',left:`${pct}%`,transform:'translateX(-50%)',fontFamily:'"JetBrains Mono",monospace',fontSize:10,color:'rgba(255,255,255,0.35)',whiteSpace:'nowrap',transition:'left 0s'}}>{width}px</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Resizable Preview ────────────────────────────────────────────────────────
+function ResizablePreview({ brand }) {
+  const [width, setWidth] = React.useState(393);
+  const dragging = React.useRef(false);
+  const startX = React.useRef(0);
+  const startW = React.useRef(0);
+
+  React.useEffect(() => {
+    const onMove = e => {
+      if (!dragging.current) return;
+      const cx = e.clientX;
+      setWidth(Math.round(Math.max(MIN_W, Math.min(MAX_W, startW.current + cx - startX.current))));
+    };
+    const onUp = () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+  }, []);
+
+  const onHandleDown = e => {
+    dragging.current = true;
+    startX.current = e.clientX;
+    startW.current = width;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  };
+
+  const bp = getBP(width);
+  const frameH =
+    bp === 'desktop' ? 640 :
+    bp === 'tablet'  ? Math.min(Math.round(width * 1.35), 860) :
+                       Math.min(Math.round(width * 2.167), 852);
+
+  const content = bp === 'desktop'
+    ? (brand === 'snabbnet' ? <SnabbnetDesktop key={brand}/> : <AureliaDesktop key={brand}/>)
+    : (brand === 'snabbnet' ? <SnabbnetHome key={brand}/> : <AureliaHome key={brand}/>);
+
+  const url = brand === 'snabbnet' ? 'my.snabbnet.se' : 'my.aurelia.com';
+
+  // Drag handle hover state
+  const [hov, setHov] = React.useState(false);
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:16}}>
+      <BreakpointBar width={width} bp={bp}/>
+      <div style={{display:'flex',alignItems:'flex-start'}}>
+        {bp==='phone'   && <IOSFrame width={width} height={frameH}>{content}</IOSFrame>}
+        {bp==='tablet'  && <TabletFrame width={width} height={frameH}>{content}</TabletFrame>}
+        {bp==='desktop' && <BrowserFrame width={width} height={frameH} url={url}>{content}</BrowserFrame>}
+
+        {/* Drag handle */}
+        <div
+          onMouseDown={onHandleDown}
+          onMouseEnter={() => setHov(true)}
+          onMouseLeave={() => setHov(false)}
+          title="Drag to resize"
+          style={{width:32,height:frameH,display:'flex',alignItems:'center',justifyContent:'center',cursor:'col-resize',flexShrink:0,marginLeft:4,transition:'opacity 0.15s'}}>
+          <div style={{width:4,height:48,borderRadius:4,background:hov?'rgba(255,255,255,0.3)':'rgba(255,255,255,0.1)',transition:'background 0.15s',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5}}>
+            {[0,1,2].map(i=><div key={i} style={{width:4,height:4,borderRadius:999,background:hov?'rgba(255,255,255,0.8)':'rgba(255,255,255,0.3)',transition:'background 0.15s'}}/>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
+function App() {
+  const [brand, setBrand] = React.useState('snabbnet');
+  return (
+    <div style={{minHeight:'100vh',background:'#14141a',padding:'64px 60px 100px',display:'flex',flexDirection:'column',alignItems:'center',gap:40,overflowX:'auto'}}>
+      {/* Header */}
+      <div style={{textAlign:'center',flexShrink:0}}>
+        <p style={{fontFamily:'"Inter",system-ui',fontSize:10,fontWeight:600,color:'rgba(255,255,255,0.28)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:10}}>
+          Upgrade Prompt · Multibrand Component · WCAG 2.1 AA
+        </p>
+        <h1 style={{fontFamily:'"Inter Tight",system-ui',fontWeight:700,fontSize:30,color:'#fff',letterSpacing:'-0.025em',display:'flex',alignItems:'center',justifyContent:'center',gap:14,margin:0}}>
+          <span style={{color:SN.orange}}>Snabbnet</span>
+          <span style={{color:'rgba(255,255,255,0.18)',fontWeight:300,fontSize:26}}>×</span>
+          <span style={{color:AU.indigo}}>Aurelia</span>
+        </h1>
+      </div>
+
+      {/* Brand switch */}
+      <BrandSwitch brand={brand} onChange={setBrand}/>
+
+      {/* Resizable preview */}
+      <ResizablePreview brand={brand}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
