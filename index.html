@@ -417,7 +417,7 @@ function AureliaCard({ onUpgrade, onDismiss, compact }) {
   const T=React.useContext(AureliaTheme);
   const s=compact
     ?{pad:'16px 14px 14px',radius:18,eyebrow:9.5,eyebrowGap:6,eyebrowIcon:12,h2:19,h2mt:12,body:12,bodyM:'8px 0 14px',cta:'11px 14px',ctaFont:13,ctaIcon:14,dismiss:12,dismissMt:10,x:28,xIcon:15,xPos:10}
-    :{pad:'22px 22px 20px',radius:24,eyebrow:12,eyebrowGap:9,eyebrowIcon:15,h2:24,h2mt:18,body:15,bodyM:'14px 0 22px',cta:'16px 18px',ctaFont:16,ctaIcon:17,dismiss:14.5,dismissMt:16,x:34,xIcon:18,xPos:16};
+    :{pad:'22px 22px 20px',radius:24,eyebrow:12,eyebrowGap:9,eyebrowIcon:15,h2:24,h2mt:8,body:15,bodyM:'8px 0 22px',cta:'16px 18px',ctaFont:16,ctaIcon:17,dismiss:14.5,dismissMt:16,x:34,xIcon:18,xPos:16};
   return (
     <div className="au-card-mount" style={{position:'relative',borderRadius:s.radius,padding:s.pad,...T.glassBlue,overflow:'hidden'}}>
       <div aria-hidden="true" style={{position:'absolute',top:-80,right:-60,width:280,height:280,borderRadius:999,background:'radial-gradient(closest-side,rgba(40,80,220,0.45),rgba(31,63,204,0.12) 55%,transparent 78%)',pointerEvents:'none',zIndex:0,filter:'blur(6px)'}}/>
